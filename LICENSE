@@ -1,0 +1,14 @@
+Copyright (c) 2026 George Khalil. All rights reserved.
+
+This repository contains documentation, descriptive materials, and an extracted,
+hardware-free subset of the CamCursor source code (the `handcursor_core` package
+and its tests). It is published for portfolio and demonstration purposes only.
+The full CamCursor application source is not included.
+
+Nothing in this repository is licensed for use, copying, modification, or
+redistribution beyond viewing it and running it locally for evaluation. The
+text, diagrams, and code contained here may not be reproduced or redistributed
+without prior written permission from the copyright holder.
+
+For access to the full source code or licensing inquiries, contact:
+georgerkhalil@gmail.com

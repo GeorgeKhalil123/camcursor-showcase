@@ -1,0 +1,4 @@
+numpy>=1.24
+PyYAML>=6.0     # calibration I/O
+pytest>=8
+ruff>=0.5

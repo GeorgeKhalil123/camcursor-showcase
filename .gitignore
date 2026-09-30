@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local data that never belongs in this repo
+*.log
+*.task
+calibration.yaml
+config.yaml
+*.mov
+*.mp4
