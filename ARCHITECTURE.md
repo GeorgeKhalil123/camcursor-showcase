@@ -20,23 +20,31 @@ and produces the next, so any stage can be replaced in isolation.
 
 ```
 ┌────────────┐   BGR frame + ts   ┌────────────┐   HandPose    ┌────────────┐
-│  camera/   │ ─────────────────▶ │  tracking/ │ ────────────▶ │ gestures/  │
-│ threaded   │                    │ MediaPipe  │               │ recognizer │
-│  capture   │                    │ landmarks  │               │  + FSM     │
+│  camera/   │ ─────────────────▶ │  tracking/ │ ────────────▶ │  fusion/   │
+│ threaded   │                    │ MediaPipe  │   ×N cameras  │ associate  │
+│  capture   │                    │ landmarks  │               │ + fuse/DLT │
 └────────────┘                    └────────────┘               └─────┬──────┘
-                                                                     │ CursorAction
+                                                                     │ FusedObservation
                                                                      ▼
-┌────────────┐   global (x,y)     ┌────────────┐  smoothed     ┌────────────┐
-│  cursor/   │ ◀───────────────── │ monitors/  │ ◀──────────── │  cursor/   │
-│  pynput    │                    │  mapping   │  normalised   │  One Euro  │
-│ (OS events)│                    │            │  pos          │  filter    │
-└────────────┘                    └────────────┘               └────────────┘
+┌────────────┐  smoothed          ┌────────────┐ CursorAction  ┌────────────┐
+│ monitors/  │ ◀───────────────── │  cursor/   │ ◀──────────── │ gestures/  │
+│  mapping   │  normalised pos    │  One Euro  │               │ recognizer │
+│            │                    │  filter    │               │  + FSM     │
+└─────┬──────┘                    └────────────┘               └────────────┘
+      │ global (x,y)
+      ▼
+┌────────────┐
+│  cursor/   │
+│  pynput    │
+│ (OS events)│
+└────────────┘
 ```
 
 | Stage | Responsibility | Output contract |
 |---|---|---|
 | `camera/` | Grab frames without buffer lag | `(BGR frame, timestamp)` |
 | `tracking/` | Detect the hand | `HandPose` — 21 landmarks (x, y, z), handedness, score |
+| `fusion/` | Match and combine hands across cameras (passthrough with one) | `FusedObservation` |
 | `gestures/` | Recognise intent | `GestureFeatures` → `CursorAction` |
 | `cursor/` | Smooth + actuate | normalised cursor position; OS button events |
 | `monitors/` | Place on screen | global pixel `(x, y)` across all displays |

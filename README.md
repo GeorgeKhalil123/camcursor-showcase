@@ -35,7 +35,7 @@ to an on/off switch, across every connected monitor.
 | Gesture | State | Effect |
 |---|---|---|
 | Open hand | `MOVING` | Cursor follows the palm (smoothed) |
-| Pinch (thumb + index) | `PINCH_CLICK` → `DRAGGING` | Button down; quick release = click. Held, it reads as `DRAGGING` (button stays down, cursor follows), even before the hand moves |
+| Pinch (thumb + index) | `PINCH_CLICK` → `DRAGGING` | Button down; quick release = click. Held, it reads as `DRAGGING` (button stays down, cursor follows), even before the hand moves. Held still past a dwell time, it fires one `RECLICK` (release + press) so a missed tap still clicks |
 | Fist | `DISABLED` | Cursor freezes |
 | No hand / bare point | `IDLE` | Nothing moves (bare point reserved for a precision mode) |
 | Two open palms | system toggle | Turns the whole system on/off |
@@ -50,13 +50,12 @@ in this repo; grey dashed nodes are private.
 
 ```mermaid
 flowchart TB
-    subgraph capture["camera/"]
+    subgraph capture["camera/ + tracking/"]
         direction LR
         CAM["Webcam(s)<br/>OpenCV VideoCapture"]:::private
         GRAB["LatestFrameGrabber<br/>single-slot thread"]:::public
-    end
-    subgraph track["tracking/"]
         MP["HandTracker<br/>MediaPipe Hand Landmarker"]:::private
+        CAM -->|BGR frame| GRAB -->|newest frame + ts| MP
     end
     subgraph fuse["fusion/"]
         direction LR
@@ -64,31 +63,29 @@ flowchart TB
         ASSOC["associate()<br/>match hands across cameras"]:::public
         FF["FeatureFusion<br/>calibration-free"]:::public
         TRI["TriangulationFusion<br/>DLT via SVD"]:::public
+        ASSOC --> FF & TRI
+        CAL -.-> TRI
     end
     subgraph gest["gestures/"]
         direction LR
         REC["GestureRecognizer<br/>scale-invariant features"]:::public
         TOG["SystemToggle<br/>two-palm switch"]:::public
         FSM["GestureStateMachine<br/>pure: features in, actions out"]:::public
+        REC -->|GestureFeatures| FSM
+        REC --> TOG
+        TOG -.->|gates| FSM
     end
-    subgraph out["cursor/ + monitors/"]
+    subgraph out["output"]
         direction LR
-        EURO["One Euro filter"]:::public
-        MON["MonitorLayout<br/>virtual-desktop mapping"]:::public
+        EURO["One Euro filter<br/>cursor/"]:::public
+        MON["MonitorLayout<br/>monitors/"]:::public
         CTRL["CursorController<br/>pynput + snap-to-target"]:::private
+        EURO --> MON -->|global px| CTRL
     end
 
-    CAM -->|BGR frame| GRAB
-    GRAB -->|newest frame + ts| MP
-    MP -->|"HandPose ×N cameras"| ASSOC
-    ASSOC --> FF & TRI
-    CAL -.-> TRI
-    FF & TRI -->|FusedObservation| REC
-    REC -->|GestureFeatures| FSM
-    REC --> TOG
-    TOG -.->|gates| FSM
-    FSM -->|CursorAction| EURO
-    EURO --> MON -->|global px| CTRL
+    capture -->|"HandPose ×N cameras"| fuse
+    fuse -->|FusedObservation| gest
+    gest -->|CursorAction| out
 
     classDef public fill:#2563eb,stroke:#1e3a8a,stroke-width:2px,color:#ffffff
     classDef private fill:#e5e7eb,stroke:#6b7280,stroke-width:2px,stroke-dasharray:6 4,color:#1f2937
@@ -206,7 +203,9 @@ ruff check .
 
 The demo replays a synthetic open hand → pinch → hold → drag → fist sequence
 through the real recognizer, state machine, filter and two-monitor mapping, and
-prints each state transition and the smoothed cursor position:
+prints each state transition and the smoothed cursor position. `RECLICK` at 1.2 s is
+the dwell fallback: the pinch was held still, so the button is released and pressed
+again, and the drag continues:
 
 ```
   t(s)  posture  state        action   raw pointer      cursor(px)

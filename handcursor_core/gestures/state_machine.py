@@ -15,8 +15,8 @@ Click / drag model (pinch presses immediately on the rising edge):
 
     pinch engages              -> PRESS (button down)
     ... released quickly       -> RELEASE  => OS sees down-up = a normal CLICK
-    ... held + moved           -> DRAGGING (MOVE) until release
-    ... held still > dwell      -> RECLICK (release+press): registers a click and
+    ... held                   -> DRAGGING (MOVE) until release
+    ... held still > dwell     -> RECLICK (release+press): registers a click and
                                    stays grabbed, so moving after resumes the drag
                                    (reliability fallback when a quick tap is missed)
 
