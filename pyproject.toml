@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Hardware-free core of CamCursor: gesture state machine, One Euro smoothing, multi-monitor mapping and multi-camera DLT triangulation."
 readme = "README.md"
 requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "George Khalil"}]
 dependencies = [
     "numpy>=1.24",
     "PyYAML>=6.0",
@@ -11,6 +13,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
+# Only needed for MonitorLayout.detect() on real hardware.
+monitors = ["screeninfo", "pyobjc-framework-Quartz; sys_platform == 'darwin'"]
+
+[project.urls]
+Repository = "https://github.com/GeorgeKhalil123/camcursor-showcase"
 
 [build-system]
 requires = ["setuptools>=68"]

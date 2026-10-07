@@ -35,7 +35,7 @@ to an on/off switch, across every connected monitor.
 | Gesture | State | Effect |
 |---|---|---|
 | Open hand | `MOVING` | Cursor follows the palm (smoothed) |
-| Pinch (thumb + index) | `PINCH_CLICK` → `DRAGGING` | Button down; quick release = click, hold + move = drag |
+| Pinch (thumb + index) | `PINCH_CLICK` → `DRAGGING` | Button down; quick release = click. Held, it reads as `DRAGGING` (button stays down, cursor follows), even before the hand moves |
 | Fist | `DISABLED` | Cursor freezes |
 | No hand / bare point | `IDLE` | Nothing moves (bare point reserved for a precision mode) |
 | Two open palms | system toggle | Turns the whole system on/off |
@@ -45,12 +45,13 @@ to an on/off switch, across every connected monitor.
 ## Architecture (full system)
 
 Data flows one way. Each stage consumes one typed contract and produces the next, so
-any stage can be swapped without touching the others. Shaded nodes are included in
-this repo; dashed nodes are private.
+any stage can be swapped without touching the others. Solid blue nodes are included
+in this repo; grey dashed nodes are private.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph capture["camera/"]
+        direction LR
         CAM["Webcam(s)<br/>OpenCV VideoCapture"]:::private
         GRAB["LatestFrameGrabber<br/>single-slot thread"]:::public
     end
@@ -58,23 +59,27 @@ flowchart LR
         MP["HandTracker<br/>MediaPipe Hand Landmarker"]:::private
     end
     subgraph fuse["fusion/"]
+        direction LR
+        CAL["calibration I/O<br/>K, R, t"]:::public
         ASSOC["associate()<br/>match hands across cameras"]:::public
         FF["FeatureFusion<br/>calibration-free"]:::public
         TRI["TriangulationFusion<br/>DLT via SVD"]:::public
-        CAL["calibration I/O<br/>K, R, t"]:::public
     end
     subgraph gest["gestures/"]
+        direction LR
         REC["GestureRecognizer<br/>scale-invariant features"]:::public
-        FSM["GestureStateMachine<br/>pure: features in, actions out"]:::public
         TOG["SystemToggle<br/>two-palm switch"]:::public
+        FSM["GestureStateMachine<br/>pure: features in, actions out"]:::public
     end
     subgraph out["cursor/ + monitors/"]
+        direction LR
         EURO["One Euro filter"]:::public
         MON["MonitorLayout<br/>virtual-desktop mapping"]:::public
         CTRL["CursorController<br/>pynput + snap-to-target"]:::private
     end
 
-    CAM -->|BGR frame| GRAB -->|newest frame + ts| MP
+    CAM -->|BGR frame| GRAB
+    GRAB -->|newest frame + ts| MP
     MP -->|"HandPose ×N cameras"| ASSOC
     ASSOC --> FF & TRI
     CAL -.-> TRI
@@ -82,10 +87,11 @@ flowchart LR
     REC -->|GestureFeatures| FSM
     REC --> TOG
     TOG -.->|gates| FSM
-    FSM -->|CursorAction| EURO --> MON -->|global px| CTRL
+    FSM -->|CursorAction| EURO
+    EURO --> MON -->|global px| CTRL
 
-    classDef public fill:#dbeafe,stroke:#1e40af,color:#0f172a
-    classDef private fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#334155
+    classDef public fill:#2563eb,stroke:#1e3a8a,stroke-width:2px,color:#ffffff
+    classDef private fill:#e5e7eb,stroke:#6b7280,stroke-width:2px,stroke-dasharray:6 4,color:#1f2937
 ```
 
 The full design write-up, including the triangulation math, is in
@@ -149,9 +155,9 @@ the same interface.
 
 ## Numbers (verified)
 
-| | Full private project | This repo |
+| | Full private project (working tree, 2026-10-07) | This repo |
 |---|---|---|
-| Package code | 2,632 lines across 33 `.py` files (`handcursor/`) | 1,906 lines (`handcursor_core/`) |
+| Package code | 2,632 lines across 33 `.py` files (`handcursor/`) | 1,904 lines (`handcursor_core/`) |
 | Tests | 85 hardware-free test functions, 1,785 lines | 91 tests (76 ported + 15 new), 1,844 lines |
 | Hardware needed to run tests | none | none |
 
@@ -190,7 +196,7 @@ source.
 Requires Python 3.10+. No camera, MediaPipe or OpenCV needed.
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt        # numpy, PyYAML, pytest, ruff
 
 python -m handcursor_core.demo         # scripted gesture replay + triangulation demo
@@ -215,6 +221,9 @@ prints each state transition and the smoothed cursor position:
 It then projects a known 3D point and a full synthetic hand into two synthetic
 cameras 15 cm apart and recovers them with DLT. The error is about 1e-8 m, which is
 float32 round-off, because the synthetic pixels are noise-free.
+
+`MonitorLayout.detect()` (real display enumeration) is not used by the demo or tests;
+it needs `pip install -e ".[monitors]"`.
 
 ---
 

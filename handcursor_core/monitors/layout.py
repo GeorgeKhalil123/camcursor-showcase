@@ -55,6 +55,9 @@ class MonitorLayout:
         bounding box (top of an external above the MacBook gets clamped at
         the MacBook's top instead of the external's actual top).
         Other platforms: fall back to ``screeninfo``.
+
+        Neither backend is a core dependency; install them with
+        ``pip install -e ".[monitors]"``.
         """
         import sys
         if sys.platform == "darwin":

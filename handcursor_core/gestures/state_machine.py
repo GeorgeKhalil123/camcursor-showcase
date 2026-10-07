@@ -30,11 +30,6 @@ single most reliable pose to track (face-on, maximal view quality), so the most
 frequent action sits where misreads are least likely, and the fragile pinch/fist
 detection is only exercised briefly for clicks. A bare index point is left
 unmapped (reserved for a future precision mode) and simply holds position.
-
-Sticky pinch: once the button is held, a transient fist can't drop us to
-DISABLED — we leave only when the thumb-index distance clears the release
-threshold. Fist stabilization: is_fist must persist min_fist_frames before
-DISABLED, so single-frame flicker doesn't freeze the cursor.
 """
 
 from __future__ import annotations

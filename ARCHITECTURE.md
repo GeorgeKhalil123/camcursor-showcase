@@ -25,11 +25,12 @@ and produces the next, so any stage can be replaced in isolation.
 │  capture   │                    │ landmarks  │               │  + FSM     │
 └────────────┘                    └────────────┘               └─────┬──────┘
                                                                      │ CursorAction
-                                        global (x,y)  ┌────────────┐ │
-                     ┌────────────┐  ◀───────────────│  cursor/   │◀┘
-                     │ monitors/  │  normalised pos   │  One Euro  │
-                     │  mapping   │ ◀─────────────────│ + pynput   │
-                     └────────────┘                   └────────────┘
+                                                                     ▼
+┌────────────┐   global (x,y)     ┌────────────┐  smoothed     ┌────────────┐
+│  cursor/   │ ◀───────────────── │ monitors/  │ ◀──────────── │  cursor/   │
+│  pynput    │                    │  mapping   │  normalised   │  One Euro  │
+│ (OS events)│                    │            │  pos          │  filter    │
+└────────────┘                    └────────────┘               └────────────┘
 ```
 
 | Stage | Responsibility | Output contract |
@@ -242,7 +243,7 @@ pipeline surgery.
 
 - **`config.yaml`** — every tunable (pinch thresholds, smoothing knobs, active region,
   fusion strategy, calibration path) is documented inline. A typed loader validates it.
-- **Tests** — hardware-free unit tests (85 in the full project) cover the state
+- **Tests** — hardware-free unit tests (85 in the full project's working tree as of 2026-10-07) cover the state
   machine's transitions, the One Euro filter, coordinate mapping, and the DLT math. No
   camera, no mouse, deterministic — the parts most likely to regress are exactly the
   parts under test. 76 of them are ported into this repo's `tests/`.
